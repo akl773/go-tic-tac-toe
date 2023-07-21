@@ -87,5 +87,21 @@ func (g *Game) PrintInstruction() {
 	fmt.Println("The rules are simple, Player 1 is 'X' and Player 2 is 'O'.")
 	fmt.Println("Take turns to enter a row and column number (0, 1, or 2) for your mark.")
 	fmt.Println("The first player to get 3 of their marks in a row (up, down, across, or diagonally) is the winner.")
-	fmt.Println("Let's get started!")
+	fmt.Println("When entering your move, enter the row number and column number, separated by a space.")
+	fmt.Println("For example, '0 1' will place your mark in the top-middle cell.")
+	fmt.Println("\nHere are the coordinates of the board for your reference:")
+
+	g.PrintCoordinates()
+
+	fmt.Println("\n\nLet's get started!")
+}
+
+func (g *Game) PrintCoordinates() {
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			fmt.Printf("| %d,%d ", i, j)
+		}
+		fmt.Println("|")
+		fmt.Println("--------------")
+	}
 }
