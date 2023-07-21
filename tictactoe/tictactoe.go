@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+const (
+	EmptyMark = iota
+	Player1Mark
+	Player2Mark
+)
+
 type Game struct {
 	board       [3][3]int
 	rowSum      [3]int
@@ -22,67 +28,84 @@ type Player struct {
 	Mark int
 }
 
-func newGame() *Game {
+type Move struct {
+	Row int
+	Col int
+}
+
+// NewGame initializes a new game and returns its address.
+func NewGame() *Game {
 	return &Game{
-		currentMark: 1, // Start with player 1's move
+		currentMark: Player1Mark, // Start with player 1's move
 	}
 }
 
+// NewPlayer initializes a new player and returns its address.
 func NewPlayer(name string, mark int) *Player {
 	return &Player{name, mark}
 }
 
+// StartGame creates and starts a new game.
 func StartGame() {
-	game := newGame()
-	game.PrintInstruction()
-	player1 := NewPlayer("Player 1", 1)
-	player2 := NewPlayer("Player 2", -1)
+	game := NewGame()
+	printInstruction()
+	player1 := NewPlayer("Player 1", Player1Mark)
+	player2 := NewPlayer("Player 2", Player2Mark)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		game.Print()
+		printBoard(game.board)
 
 		for _, player := range []*Player{player1, player2} {
 			fmt.Printf("%s's move (row col): ", player.Name)
 
-			scanner.Scan()
-			input := strings.TrimSpace(scanner.Text())
-			move := strings.Split(input, "")
-			if len(move) != 2 {
-				fmt.Println("Invalid input. Please enter row and column numbers separated by a space.")
+			move, err := parseMove(scanner)
+			if err != nil {
+				fmt.Println(err)
 				continue
 			}
 
-			row, errRow := strconv.Atoi(move[0])
-			col, errCol := strconv.Atoi(move[1])
-
-			if errRow != nil || errCol != nil || row < 0 || row > 2 || col < 0 || col > 2 {
-				fmt.Println("Invalid input. Please enter valid row and column numbers (0, 1, or 2).")
-				continue
-			}
-
-			if err := game.MakeMove(player, row, col); err != nil {
+			if err := game.MakeMove(player, *move); err != nil {
 				fmt.Println(err)
 				continue
 			}
 
 			if game.CheckWin(player) {
 				fmt.Printf("%s wins!\n", player.Name)
-				game.Print()
+				printBoard(game.board)
 				os.Exit(0)
 			}
 
 			if game.CheckDraw() {
 				fmt.Println("It's a draw!")
-				game.Print()
+				printBoard(game.board)
 				os.Exit(0)
 			}
 		}
 	}
 }
 
-func (g *Game) MakeMove(player *Player, row int, col int) error {
-	if row < 0 || row > 2 || col < 0 || col > 2 || g.board[row][col] != 0 {
+func parseMove(scanner *bufio.Scanner) (*Move, error) {
+	scanner.Scan()
+	input := strings.TrimSpace(scanner.Text())
+	moveInput := strings.Split(input, " ")
+	if len(moveInput) != 2 {
+		return nil, errors.New("invalid input. Please enter row and column numbers separated by a space")
+	}
+
+	row, errRow := strconv.Atoi(moveInput[0])
+	col, errCol := strconv.Atoi(moveInput[1])
+
+	if errRow != nil || errCol != nil || row < 0 || row > 2 || col < 0 || col > 2 {
+		return nil, errors.New("invalid input. Please enter valid row and column numbers (0, 1, or 2)")
+	}
+
+	return &Move{Row: row, Col: col}, nil
+}
+
+// MakeMove makes a move for a player.
+func (g *Game) MakeMove(player *Player, move Move) error {
+	if move.Row < 0 || move.Row > 2 || move.Col < 0 || move.Col > 2 || g.board[move.Row][move.Col] != EmptyMark {
 		return errors.New("invalid move")
 	}
 
@@ -90,13 +113,13 @@ func (g *Game) MakeMove(player *Player, row int, col int) error {
 		return errors.New("not your turn")
 	}
 
-	g.board[row][col] = player.Mark
-	g.rowSum[row] += player.Mark
-	g.colSum[col] += player.Mark
-	if row == col {
+	g.board[move.Row][move.Col] = player.Mark
+	g.rowSum[move.Row] += player.Mark
+	g.colSum[move.Col] += player.Mark
+	if move.Row == move.Col {
 		g.diagSum[0] += player.Mark
 	}
-	if row+col == 2 {
+	if move.Row+move.Col == 2 {
 		g.diagSum[1] += player.Mark
 	}
 
@@ -105,9 +128,9 @@ func (g *Game) MakeMove(player *Player, row int, col int) error {
 	return nil
 }
 
+// CheckWin checks if a player has won the game.
 func (g *Game) CheckWin(player *Player) bool {
-	mark := player.Mark
-	winSum := mark * 3
+	winSum := player.Mark * 3
 	for i := 0; i < 3; i++ {
 		if g.rowSum[i] == winSum || g.colSum[i] == winSum {
 			return true
@@ -116,38 +139,19 @@ func (g *Game) CheckWin(player *Player) bool {
 	return g.diagSum[0] == winSum || g.diagSum[1] == winSum
 }
 
+// CheckDraw checks if the game is a draw.
 func (g *Game) CheckDraw() bool {
-	movesMade := 0
 	for _, row := range g.board {
 		for _, cell := range row {
-			if cell != 0 {
-				movesMade++
+			if cell == EmptyMark {
+				return false
 			}
 		}
 	}
-	return movesMade == 9
+	return true
 }
 
-func (g *Game) Print() {
-	for _, row := range g.board {
-		for _, cell := range row {
-			var mark string
-			switch cell {
-			case 0:
-				mark = " "
-			case 1:
-				mark = "X"
-			case -1:
-				mark = "O"
-			}
-			fmt.Printf("| %s ", mark)
-		}
-		fmt.Println("|")
-		fmt.Println("-----------")
-	}
-}
-
-func (g *Game) PrintInstruction() {
+func printInstruction() {
 	fmt.Println("Welcome to Go Tic Tac Toe!")
 	fmt.Println("The rules are simple, Player 1 is 'X' and Player 2 is 'O'.")
 	fmt.Println("Take turns to enter a row and column number (0, 1, or 2) for your mark.")
@@ -156,17 +160,37 @@ func (g *Game) PrintInstruction() {
 	fmt.Println("For example, '0 1' will place your mark in the top-middle cell.")
 	fmt.Println("\nHere are the coordinates of the board for your reference:")
 
-	g.PrintCoordinates()
+	printCoordinates()
 
 	fmt.Println("\n\nLet's get started!")
 }
 
-func (g *Game) PrintCoordinates() {
+func printCoordinates() {
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 3; j++ {
-			fmt.Printf("| %d,%d ", i, j)
+			fmt.Printf(" | %d,%d ", i, j)
 		}
 		fmt.Println("|")
-		fmt.Println("--------------")
+		fmt.Println("----------------------")
+	}
+}
+
+// printBoard prints the current state of the game board.
+func printBoard(board [3][3]int) {
+	for _, row := range board {
+		for _, cell := range row {
+			var mark string
+			switch cell {
+			case EmptyMark:
+				mark = " "
+			case Player1Mark:
+				mark = "X"
+			case Player2Mark:
+				mark = "O"
+			}
+			fmt.Printf("| %s ", mark)
+		}
+		fmt.Println("|")
+		fmt.Println("---------------")
 	}
 }
