@@ -11,6 +11,8 @@ import (
 
 func main() {
 	game := ttt.NewGame()
+	game.PrintInstruction()
+
 	player1 := ttt.NewPlayer("Player 1", 1)
 	player2 := ttt.NewPlayer("Player 2", -1)
 

@@ -81,3 +81,11 @@ func (g *Game) Print() {
 		fmt.Println("-----------")
 	}
 }
+
+func (g *Game) PrintInstruction() {
+	fmt.Println("Welcome to Go Tic Tac Toe!")
+	fmt.Println("The rules are simple, Player 1 is 'X' and Player 2 is 'O'.")
+	fmt.Println("Take turns to enter a row and column number (0, 1, or 2) for your mark.")
+	fmt.Println("The first player to get 3 of their marks in a row (up, down, across, or diagonally) is the winner.")
+	fmt.Println("Let's get started!")
+}
