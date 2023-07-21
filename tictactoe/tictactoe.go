@@ -123,7 +123,11 @@ func (g *Game) MakeMove(player *Player, move Move) error {
 		g.diagSum[1] += player.Mark
 	}
 
-	g.currentMark *= -1 // Switch player
+	if g.currentMark == Player1Mark {
+		g.currentMark = Player2Mark
+	} else {
+		g.currentMark = Player1Mark
+	}
 
 	return nil
 }
@@ -148,7 +152,7 @@ func (g *Game) CheckDraw() bool {
 			}
 		}
 	}
-	return true
+	return !g.CheckWin(NewPlayer("", Player1Mark)) && !g.CheckWin(NewPlayer("", Player2Mark))
 }
 
 func printInstruction() {
